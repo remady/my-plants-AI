@@ -1,0 +1,10 @@
+[
+  {
+    "input": "provide tomatoes fertilization plan for Flowering period",
+    "actual_output": null,
+    "expected_output": "Tomatoes should be fertilized with a balanced fertilizer high in phosphorus and potassium during the flowering period to promote fruit development. Use BloomStar X (4-12-12) twice a week. 10 ml per liter of water.",
+    "retrieval_context": [],
+    "context": [],
+    "source_file": null
+  }
+]

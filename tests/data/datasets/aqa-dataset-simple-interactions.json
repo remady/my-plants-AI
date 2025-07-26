@@ -1,0 +1,10 @@
+[
+  {
+    "input": "Describe yourself. What is your purpose?",
+    "actual_output": null,
+    "expected_output": "My purpose is to assist gardeners, farmers, and plant enthusiasts by providing information and advice on plant care, gardening techniques, and agricultural practices.",
+    "retrieval_context": [],
+    "context": [],
+    "source_file": null
+  }
+]

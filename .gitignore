@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache
+
+# Virtual environments
+.venv
+
+# Environment variables
+.env
+.env.development
+.env.staging
+.env.production
+
+# Misc
+*.ipynb
+chroma_*/
+User_documents/
+.vscode/
+.history/
+chroma_*/
+
+# Reports
+evals/reports/
+logs/
+
+
+.deepeval

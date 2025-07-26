@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # Single API service with dynamic environment
+  app:
+    build:
+      context: .
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./logs:/app/logs
+      - ./chroma_langchain_db:/app/chroma_langchain_db
+    env_file:
+      - .env.${APP_ENV:-development}
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      # Pass sensitive variables at runtime
+      - LLM_API_KEY=${LLM_API_KEY:-dummy-key-for-development}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-468ba3c160ef468c7eb3507540ba78873985ba8dd83728d0c25b862c1447}
+    command: ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: on-failure
+    networks:
+      - monitoring
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - monitoring
+    restart: always
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring
+    restart: always
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring
+    restart: always
+
+  tests:
+    image: app
+    profiles: ["test"]
+    command: ["pytest", "tests"]
+    volumes:
+      - ./app:/app/app
+      - ./logs:/app/logs
+    env_file:
+      - .env.${APP_ENV:-development}
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - TEST_USER_EMAIL=${TEST_USER_EMAIL:-user2@example.com}
+      - TEST_USER_PASSWORD=${TEST_USER_PASSWORD:-Syzumurap1!}
+      - TEST_APP_DEFAULT_HOST=http://app:8000
+      - TEST_DRY_RUN=${TEST_DRY_RUN:-true}
+    networks:
+      - monitoring
+
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  grafana-storage: 
