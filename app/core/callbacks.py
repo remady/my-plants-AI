@@ -1,18 +1,20 @@
 """Module containing LLM chat callbacks."""
 
-from uuid import UUID
-from langchain_core.callbacks import UsageMetadataCallbackHandler, CallbackManagerForToolRun, AsyncCallbackHandler
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+from uuid import UUID
+
+from langchain_core.callbacks import AsyncCallbackHandler, CallbackManagerForToolRun, UsageMetadataCallbackHandler
+
 from app.core.logging import logger
 from app.core.metrics import (
     llm_input_tokens_used,
     llm_output_tokens_used,
-    llm_total_tokens_used,
-    llm_total_cost,
     llm_response_duration,
     llm_tool_call_duration_seconds,
     llm_tool_calls,
+    llm_total_cost,
+    llm_total_tokens_used,
 )
 
 

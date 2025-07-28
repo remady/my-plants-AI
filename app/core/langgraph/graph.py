@@ -317,7 +317,7 @@ class LangGraphAgent:
             )
             return self.__process_messages(response["messages"])
         except Exception as e:
-            logger.error(f"Error getting response: {str(e)}")
+            logger.error("error_getting_response", error=str(e))
             raise e
 
     async def get_stream_response(

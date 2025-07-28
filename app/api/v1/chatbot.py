@@ -26,6 +26,8 @@ from app.models.session import Session
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
+    Message,
+    StreamFinalResponse,
     StreamResponse,
 )
 
@@ -33,7 +35,7 @@ router = APIRouter()
 agent = LangGraphAgent()
 
 
-@router.post("/chat", response_model=Union[ChatResponse])
+@router.post("/chat", response_model=ChatResponse)
 @limiter.limit(settings.RATE_LIMIT_ENDPOINTS["chat"][0])
 async def chat(
     request: Request,
@@ -60,13 +62,11 @@ async def chat(
             message_count=len(chat_request.messages),
         )
 
-        result = await agent.get_response(
-            chat_request.messages, session.id
-        )
+        result = await agent.get_response(chat_request.messages, session.id)
 
         logger.info("chat_request_processed", session_id=session.id)
 
-        return ChatResponse(messages=result)
+        return ChatResponse(message=result[-1])
     except Exception as e:
         logger.error("chat_request_failed", session_id=session.id, error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -109,18 +109,17 @@ async def chat_stream(
                 Exception: If there's an error during streaming.
             """
             try:
-                full_response = ""
-                with llm_stream_duration_seconds.labels(model=agent.llm.model).time():
-                    async for chunk in agent.get_stream_response(
-                        chat_request.messages, session.id, user_id=session.user_id
-                    ):
-                        full_response += chunk
-                        response = StreamResponse(content=chunk, done=False)
-                        yield f"data: {json.dumps(response.model_dump())}\n\n"
-
+                with llm_stream_duration_seconds.labels(model=agent.llm_model).time():
+                    async for chunk in agent.get_stream_response(chat_request.messages, session.id):
+                        message = Message(role="assistant", content=chunk)
+                        response = StreamResponse(model="model", message=message, done=False)
+                        yield f"{json.dumps(response.model_dump())}\n\n"
+                        
                 # Send final message indicating completion
-                final_response = StreamResponse(content="", done=True)
-                yield f"data: {json.dumps(final_response.model_dump())}\n\n"
+                final_response = StreamFinalResponse(
+                    model="model", done=True
+                )
+                yield f"{json.dumps(final_response.model_dump())}\n\n"
 
             except Exception as e:
                 logger.error(
@@ -129,8 +128,7 @@ async def chat_stream(
                     error=str(e),
                     exc_info=True,
                 )
-                error_response = StreamResponse(content=str(e), done=True)
-                yield f"data: {json.dumps(error_response.model_dump())}\n\n"
+                yield "error"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -142,6 +140,23 @@ async def chat_stream(
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tags")
+async def get_models(
+    request: Request,
+    session: Session = Depends(get_current_session),
+):
+    """Get available models for the chatbot. Needed for ollama protocol compatibility.
+
+    Args:
+        request: The FastAPI request object.
+        session: The current session from the auth token.
+
+    Returns:
+        dict: A dictionary containing available models and their details.
+    """
+    return {"models": [{"name": agent.llm_model, "size": 123456789}]}
 
 
 @router.get("/messages", response_model=ChatResponse)

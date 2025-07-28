@@ -1,6 +1,7 @@
 """This file contains the chat schema for the application."""
 
 import re
+from datetime import datetime
 from typing import (
     List,
     Literal,
@@ -10,6 +11,7 @@ from typing import (
 from pydantic import (
     BaseModel,
     Field,
+    computed_field,
     field_validator,
 )
 
@@ -74,6 +76,8 @@ class ChatRequest(BaseModel):
         messages: List of messages in the conversation.
     """
 
+    model: str = Field(default="model", description="LLM model to be used in response")
+    stream: bool = Field(default=False, description="Use SSE or not")
     messages: List[Message] = Field(
         ...,
         description="List of messages in the conversation",
@@ -88,7 +92,12 @@ class ChatResponse(BaseModel):
         messages: List of messages in the conversation.
     """
 
-    messages: List[Message] = Field(..., description="List of messages in the conversation")
+    message: Message = Field(..., description="List of messages in the conversation")
+    model: str = Field(default="model", description="LLM model to be used in response")
+    @computed_field(return_type=str)
+    @property
+    def created_at(self) -> str:    #noqa
+        return datetime.now().isoformat()
     
 
 class ChatResponseDebug(BaseModel):
@@ -107,6 +116,27 @@ class StreamResponse(BaseModel):
         content: The content of the current chunk.
         done: Whether the stream is complete.
     """
-
-    content: str = Field(default="", description="The content of the current chunk")
+    model: str = Field(default="model", description="LLM model to be used in response")
+    message: Message
     done: bool = Field(default=False, description="Whether the stream is complete")
+    
+    @computed_field(return_type=str)
+    @property
+    def created_at(self) -> str:    #noqa
+        return datetime.now().isoformat()
+
+
+class StreamFinalResponse(BaseModel):
+    """Final response model for streaming chat endpoint.
+
+    Attributes:
+        model: The LLM model used in the response.
+        done: Whether the stream is complete.
+        created_at: The timestamp when the response was created.
+    """
+    model: str = Field(default="model", description="LLM model to be used in response")
+    done: bool = Field(default=True, description="Whether the stream is complete")
+    @computed_field(return_type=str)
+    @property
+    def created_at(self) -> str:    #noqa
+        return datetime.now().isoformat()
