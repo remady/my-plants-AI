@@ -1,11 +1,13 @@
 """Utility functions for file operations such as removing files."""
 
 import os
-import aiofiles
 from pathlib import Path
 from typing import BinaryIO
 
+import aiofiles
+
 from app.core.logging import logger
+
 
 def create_dir(path: os.PathLike):
     """Create a directory for the given path if it does not exist.

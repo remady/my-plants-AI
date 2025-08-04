@@ -1,7 +1,7 @@
 """Deepeval evaluations LLMs module."""
-from pydantic import BaseModel
-from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 from deepeval.models.base_model import DeepEvalBaseLLM
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
+from pydantic import BaseModel
 
 from app.core.logging import logger
 

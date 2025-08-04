@@ -1,12 +1,12 @@
-"""LangGraph tools for enhanced language model capabilities.
+"""This file contains the definitions for the tools available to the agent."""
 
-This package contains custom tools that can be used with LangGraph to extend
-the capabilities of language models. Currently includes tools for web search
-and other external integrations.
-"""
+from .knowledge_base import KnowledgeBaseTool
+from .npk_calculator import npk_calculator_tool
+from .ph_calculator import ph_calculator_tool
 
-from langchain_core.tools.base import BaseTool
-
-from .retriever import retriever_tool
-
-tools: list[BaseTool] = [retriever_tool]
+__all__ = [
+    "knowledge_base_tool",
+    "npk_calculator_tool",
+    "ph_calculator_tool",
+    "KnowledgeBaseTool",
+]

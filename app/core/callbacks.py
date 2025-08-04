@@ -1,18 +1,20 @@
 """Module containing LLM chat callbacks."""
 
-from uuid import UUID
-from langchain_core.callbacks import UsageMetadataCallbackHandler, CallbackManagerForToolRun, AsyncCallbackHandler
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+from uuid import UUID
+
+from langchain_core.callbacks import AsyncCallbackHandler, CallbackManagerForToolRun, UsageMetadataCallbackHandler
+
 from app.core.logging import logger
 from app.core.metrics import (
     llm_input_tokens_used,
     llm_output_tokens_used,
-    llm_total_tokens_used,
-    llm_total_cost,
     llm_response_duration,
     llm_tool_call_duration_seconds,
     llm_tool_calls,
+    llm_total_cost,
+    llm_total_tokens_used,
 )
 
 
@@ -103,6 +105,12 @@ class ToolRunCallback(AsyncCallbackHandler):
     """Asynchronous callback handler for tracking tool run events such as start, end, and errors."""
 
     def __init__(self, session_id: str = None, model: str = None):
+        """Initialize the callback handler.
+
+        Args:
+            session_id: The session ID for the conversation.
+            model: The model used for the conversation.
+        """
         super().__init__()
         self.tool_start_time: int = None
         self.session_id: str = session_id

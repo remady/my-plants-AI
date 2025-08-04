@@ -10,11 +10,11 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.chatbot import router as chatbot_router
 from app.api.v1.documents import router as document_router
 from app.api.v1.testing import router as testing_router
-from app.core.logging import logger
 from app.core.config import (
     Environment,
     settings,
 )
+from app.core.logging import logger
 
 api_router = APIRouter()
 

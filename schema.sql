@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS thread (
 -- Create document table
 CREATE TABLE If NOT EXISTS document (
     id TEXT PRIMARY KEY,
+    index_id TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     tags TEXT DEFAULT '',
     name TEXT NOT NULL,
@@ -39,3 +40,4 @@ CREATE TABLE If NOT EXISTS document (
 -- Create indexes for frequently queried columns
 CREATE INDEX IF NOT EXISTS idx_user_email ON user(email);
 CREATE INDEX IF NOT EXISTS idx_session_user_id ON session(user_id);
+CREATE INDEX IF NOT EXISTS idx_document_index_id ON document(index_id);

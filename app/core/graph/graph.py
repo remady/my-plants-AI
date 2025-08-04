@@ -4,9 +4,7 @@ from typing import (
     Any,
     AsyncGenerator,
     Dict,
-    Literal,
     Optional,
-    Union,
 )
 
 from asgiref.sync import sync_to_async
@@ -20,13 +18,9 @@ from langchain_core.messages import (
 )
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.graph import (
-    END,
-    START,
-    StateGraph,
-)
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
+from langgraph_supervisor import create_supervisor
 from psycopg_pool import AsyncConnectionPool
 
 from app.core.callbacks import TokensUsageCallback, ToolRunCallback
@@ -34,10 +28,16 @@ from app.core.config import (
     Environment,
     settings,
 )
+from app.core.graph.agents import (
+    create_plant_expert_agent,
+    forwarding_tool,
+    # knowledge_base_agent,
+    # multi_agent_graph,
+    # plant_fertilization_agent,
+)
 from app.core.logging import logger
 from app.core.metrics import llm_inference_duration_seconds
 from app.core.prompts import SYSTEM_PROMPT
-from app.core.tools import tools
 from app.schemas import (
     GraphState,
     Message,
@@ -45,13 +45,13 @@ from app.schemas import (
 from app.schemas.chat import MessageDebug
 from app.utils import (
     dump_messages,
-    prepare_messages,
 )
+from app.utils.graph import prepare_messages
 
 rate_limiter = InMemoryRateLimiter(
-    requests_per_second=60 // 10,  # Gemini rate limit: 60 per minute
-    check_every_n_seconds=0.5,  # Wake up every 0.5s to check whether allowed to make a request,
-    max_bucket_size=10,  # Controls the maximum burst size.
+    requests_per_second=1,  # Gemini rate limit: 60 per minute
+    check_every_n_seconds=1,  # Wake up every 0.5s to check whether allowed to make a request,
+    max_bucket_size=1,  # Controls the maximum burst size.
 )
 
 
@@ -72,9 +72,8 @@ class LangGraphAgent:
             max_tokens=20000,
             rate_limiter=rate_limiter,
             **self._get_model_kwargs(),
-        ).bind_tools(tools)
+        )
         self.llm_model = self.__get_model_name()
-        self.tools_by_name = {tool.name: tool for tool in tools}
         self._debug = debug
         self._connection_pool: Optional[AsyncConnectionPool] = None
         self._graph: Optional[CompiledStateGraph] = None
@@ -153,7 +152,7 @@ class LangGraphAgent:
                     return None
                 raise e
         return self._connection_pool
-
+    
     async def _chat(self, state: GraphState) -> dict:
         """Process the chat state and generate a response.
 
@@ -224,21 +223,6 @@ class LangGraphAgent:
             )
         return {"messages": outputs}
 
-    def _should_continue(self, state: GraphState) -> Literal["end", "continue"]:
-        """Determine if the agent should continue or end based on the last message.
-
-        Args:
-            state: The current agent state containing messages.
-
-        Returns:
-            Literal["end", "continue"]: "end" if there are no tool calls, "continue" otherwise.
-        """
-        last_message = state.messages[-1]
-        if not last_message.tool_calls:
-            return "end"
-        else:
-            return "continue"
-
     async def create_graph(self) -> Optional[CompiledStateGraph]:
         """Create and configure the LangGraph workflow.
 
@@ -247,17 +231,20 @@ class LangGraphAgent:
         """
         if self._graph is None:
             try:
-                graph_builder = StateGraph(GraphState)
-                graph_builder.add_node("chat", self._chat)
-                graph_builder.add_node("tool_call", self._tool_call)
-                graph_builder.add_conditional_edges(
-                    "chat",
-                    self._should_continue,
-                    {"continue": "tool_call", "end": END},
+                workflow = create_supervisor(
+                    agents=[create_plant_expert_agent()],
+                    model=self.llm,
+                    output_mode="full_history",
+                    state_schema=GraphState,
+                    supervisor_name = "chat",
+                    tools=[
+                        forwarding_tool 
+                    ],
+                    prompt=(
+                        "You are a supervisor of a plant expert agent. "
+                        "Delegate any plant-related tasks to the plant_expert_agent."
+                    )
                 )
-                graph_builder.add_edge("tool_call", "chat")
-                graph_builder.set_entry_point("chat")
-                graph_builder.set_finish_point("chat")
                 
                 # Get connection pool (may be None in production if DB unavailable)
                 connection_pool = await self._get_connection_pool()
@@ -270,8 +257,9 @@ class LangGraphAgent:
                     if settings.ENVIRONMENT != Environment.PRODUCTION:
                         raise Exception("Connection pool initialization failed")
 
-                self._graph = graph_builder.compile(
-                    checkpointer=checkpointer, name=f"{settings.PROJECT_NAME} Agent ({settings.ENVIRONMENT.value})"
+                self._graph = workflow.compile(
+                    # SET CHECKPOINTER
+                    checkpointer=None, name=f"{settings.PROJECT_NAME} Agent ({settings.ENVIRONMENT.value})"
                 )
 
                 logger.info(
@@ -344,7 +332,7 @@ class LangGraphAgent:
         }
         try:
             async for token, _ in self._graph.astream(
-                {"messages": dump_messages(messages), "session_id": session_id}, config, stream_mode="messages"
+                {"messages": dump_messages(messages), "session_id": session_id, "sender": "user"}, config, stream_mode="messages"
             ):
                 try:
                     yield token.content

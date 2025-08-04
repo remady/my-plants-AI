@@ -23,6 +23,8 @@ User_documents/
 .vscode/
 .history/
 chroma_*/
+storage/
+.ruff_cache/
 
 # Reports
 evals/reports/

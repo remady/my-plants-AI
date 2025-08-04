@@ -1,11 +1,10 @@
 """Examples to evaluate."""
 
-from typing import Literal
-import jsonl
 from pathlib import Path
+from typing import Literal
 
+import jsonl
 from deepeval.dataset import EvaluationDataset
-
 
 _current = Path(__file__).parent.absolute()
 
