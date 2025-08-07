@@ -1,72 +1,72 @@
-name: Bump Version
+# name: Bump Version
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-    inputs:
-      version_type:
-        description: 'The type of version bump (patch, minor, or major)'
-        required: true
-        default: 'patch'
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+#     inputs:
+#       version_type:
+#         description: 'The type of version bump (patch, minor, or major)'
+#         required: true
+#         default: 'patch'
+#         type: choice
+#         options:
+#           - patch
+#           - minor
+#           - major
 
-jobs:
-  bump_version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+# jobs:
+#   bump_version:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Check out code
+#         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.11'
 
-      - name: Bump version
-        id: bump_version
-        run: |
-          version_type="${{ github.event.inputs.version_type }}"
-          if [ -z "$version_type" ]; then
-            version_type="patch"
-          fi
+#       - name: Bump version
+#         id: bump_version
+#         run: |
+#           version_type="${{ github.event.inputs.version_type }}"
+#           if [ -z "$version_type" ]; then
+#             version_type="patch"
+#           fi
 
-          echo "🔧 Bumping version type: $version_type"
+#           echo "🔧 Bumping version type: $version_type"
 
-          current_version=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
-          echo "📄 Current version: $current_version"
+#           current_version=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+#           echo "📄 Current version: $current_version"
 
-          IFS='.' read -r -a version_parts <<< "$current_version"
-          major=${version_parts[0]}
-          minor=${version_parts[1]}
-          patch=${version_parts[2]}
+#           IFS='.' read -r -a version_parts <<< "$current_version"
+#           major=${version_parts[0]}
+#           minor=${version_parts[1]}
+#           patch=${version_parts[2]}
 
-          if [[ "$version_type" == "major" ]]; then
-            major=$((major + 1))
-            minor=0
-            patch=0
-          elif [[ "$version_type" == "minor" ]]; then
-            minor=$((minor + 1))
-            patch=0
-          else
-            patch=$((patch + 1))
-          fi
+#           if [[ "$version_type" == "major" ]]; then
+#             major=$((major + 1))
+#             minor=0
+#             patch=0
+#           elif [[ "$version_type" == "minor" ]]; then
+#             minor=$((minor + 1))
+#             patch=0
+#           else
+#             patch=$((patch + 1))
+#           fi
 
-          new_version="$major.$minor.$patch"
-          echo "✅ New version: $new_version"
+#           new_version="$major.$minor.$patch"
+#           echo "✅ New version: $new_version"
 
-          sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+#           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
+#           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add pyproject.toml
-          git commit -m "🔖 Bump version to ${{ steps.bump_version.outputs.new_version }}"
-          git push
+#       - name: Commit and push changes
+#         run: |
+#           git config --global user.name 'github-actions[bot]'
+#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+#           git add pyproject.toml
+#           git commit -m "🔖 Bump version to ${{ steps.bump_version.outputs.new_version }}"
+#           git push
