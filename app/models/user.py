@@ -14,8 +14,8 @@ from sqlmodel import (
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.session import Session
     from app.models.document import Document
+    from app.models.session import Session
 
 
 class User(BaseModel, table=True):
@@ -47,5 +47,5 @@ class User(BaseModel, table=True):
 
 
 # Avoid circular imports
+from app.models.document import Document  # noqa: E402
 from app.models.session import Session  # noqa: E402
-from app.models.document import Document # noqa: E402

@@ -152,6 +152,7 @@ class Settings:
         self.DEFAULT_LLM_TEMPERATURE = float(os.getenv("DEFAULT_LLM_TEMPERATURE", "0.2"))
         self.MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2000"))
         self.MAX_LLM_CALL_RETRIES = int(os.getenv("MAX_LLM_CALL_RETRIES", "3"))
+        self.AGENT_PLANT_LLM_MODEL = os.getenv("AGENT_PLANT_LLM_MODEL", "google_genai:gemini-2.0-flash")
         
         # Evaluation configurations
         self.LLM_EVALUATION_MODEL = os.getenv("LLM_EVALUATION_MODEL", "")
@@ -207,6 +208,25 @@ class Settings:
         self.TEST_USER_PASSWORD = os.getenv("TEST_USER_PASSWORD", "Syzumurap1!")
         self.TEST_APP_HOST = os.getenv("TEST_APP_HOST", "http://localhost:8000")
         self.TEST_DRY_RUN = os.getenv("TEST_DRY_RUN", "false") in ("1", "true", "True", "yes", "y")
+        
+        
+        ###
+        self.RAG_INDEX_MANAGER_LLM_MODEL = os.getenv("RAG_INDEX_MANAGER_LLM_MODEL", "gemini-2.0-flash")
+        self.RAG_INDEX_MANAGER_LLM_API_KEY = os.getenv("RAG_INDEX_MANAGER_LLM_API_KEY")
+        self.RAG_INDEX_MANAGER_EMBEDDINGS = os.getenv("RAG_INDEX_MANAGER_EMBEDDINGS", "gemini-embedding-001")
+        self.RAG_INDEX_MANAGER_EMBEDDINGS_API_KEY = os.getenv("RAG_INDEX_MANAGER_EMBEDDINGS_API_KEY")
+        
+        self.RAG_RERANK_MODEL = os.getenv("RAG_RERANK_MODEL", "BAAI/bge-reranker-base")
+
+        # RAG chunking, search, weights
+        self.CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE"))
+        self.CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP"))
+        self.PERSIST_DIR: str = "./storage"
+        self.TOP_K: int = int(os.getenv("TOP_K", 10))
+        self.RERANK_TOP_N: int = int(os.getenv("RERANK_TOP_N", 4))
+        self.VECTOR_WEIGHT: float = float(os.getenv("VECTOR_WEIGHT", 0.6))
+        self.KEYWORD_WEIGHT: float = float(os.getenv("KEYWORD_WEIGHT", 0.6))
+        self.KG_WEIGHT: float = float(os.getenv("KG_WEIGHT", 0.6))
 
         # Apply environment-specific settings
         self.apply_environment_settings()

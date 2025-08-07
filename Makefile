@@ -43,7 +43,6 @@ format:
 	ruff format .
 
 clean:
-	rm -rf .venv
 	find . -type d \( -name "__pycache__" -o -name ".pytest_cache" \) -exec rm -rf {} + 2>/dev/null
 
 docker-build:

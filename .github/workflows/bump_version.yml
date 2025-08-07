@@ -1,0 +1,69 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'The type of version bump (patch, minor, or major)'
+        required: true
+        default: 'patch'
+        type: 'choice'
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          version_type=${{ github.event.inputs.version.type }}
+          
+          # Read the current version from pyproject.toml
+          current_version=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+          
+          # Split the version into major, minor, and patch
+          IFS='.' read -r -a version_parts <<< "$current_version"
+          major=${version_parts[0]}
+          minor=${version_parts[1]}
+          patch=${version_parts[2]}
+          
+          # Bump the version based on the input
+          if [[ "$version_type" == "major" ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [[ "$version_type" == "minor" ]]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+          
+          new_version="$major.$minor.$patch"
+          
+          # Update the version in pyproject.toml
+          sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
+          
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add pyproject.toml
+          git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git push

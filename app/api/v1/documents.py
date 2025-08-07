@@ -1,39 +1,44 @@
-"""Chatbot API endpoints for handling chat interactions.
+"""Documents management API endpoints.
 
-This module provides endpoints for chat interactions, including regular chat,
-streaming chat, message history management, and chat history clearing.
+This modules provides APIs for create / list / delete user documents
 """
 
 import os
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     HTTPException,
     Request,
-    File,
     UploadFile,
 )
 
 from app.api.v1.auth import get_current_session
 from app.core.logging import logger
+from app.core.rag import RagInterface
 from app.models.session import Session
 from app.schemas.document import DocumentResponse
-from app.core.vectorstore import vector_store
 from app.services.database import database_service
 from app.utils.file_utils import remove_file, save_file_by_chunks
 
-
 DOCUMENTS_FOLDER = Path("User_documents")
 router = APIRouter()
+rag_instance = RagInterface()
+
+
+def get_rag_dep():
+    """RAG FastAPI dependency."""
+    return rag_instance
 
 
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
     request: Request,
     document: UploadFile = File(...),
+    rag: RagInterface = Depends(get_rag_dep),
     session: Session = Depends(get_current_session),
 ):
     """Pass."""
@@ -50,7 +55,7 @@ async def upload_document(
 
         file_path: Path = DOCUMENTS_FOLDER / str(session.user_id) / document.filename
         await save_file_by_chunks(file_path=file_path, file=document)
-        await vector_store.add_documents_from_files([file_path])
+        index_id = await rag.add_document(file_path=file_path, file_name=document.filename)
         doc = await database_service.create_upload_document(
             user_id=session.user_id,
             file_name=document.filename,
@@ -59,7 +64,7 @@ async def upload_document(
         )
 
         remove_file(file_path)
-        return DocumentResponse(id=doc.id, name=doc.filename, size=doc.size, extension=doc.extension)
+        return DocumentResponse(id=doc.id, index_id=index_id, name=doc.filename, size=doc.size, extension=doc.extension)
     except Exception as e:
         logger.error("upload_document_failed", session_id=session.id, error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -89,6 +94,7 @@ async def list_documents(
 async def delete_document(
     request: Request,
     document_id: uuid.UUID,
+    rag: RagInterface = Depends(get_rag_dep),
     session: Session = Depends(get_current_session),
 ):
     """Delete user document file."""
@@ -99,9 +105,8 @@ async def delete_document(
         )
         if not removed_document:
             raise HTTPException(status_code=404, detail="No such document exist")
-        ids = vector_store.get_ids_by_document_name(name=removed_document.filename)
-        await vector_store.delete_documents(ids)
-        return {"status": "ok"}
+        status = await rag.delete_document(removed_document.index_id)
+        return {"ok": status}
     except Exception as e:
         logger.error("delete_document_failed", session_id=session.id, error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

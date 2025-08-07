@@ -4,17 +4,16 @@ This module provides the HttpClientWrapper class for interacting with chat and d
 """
 
 from os import PathLike
-from httpx import AsyncClient, HTTPStatusError
 
+from httpx import AsyncClient, HTTPStatusError
 from pydantic import TypeAdapter
 
+from app.core.config import settings
+from app.core.logging import logger
 from app.schemas.auth import SessionResponse, TokenResponse
 from app.schemas.chat import ChatRequest, ChatResponse, ChatResponseDebug, Message
 from app.schemas.document import DocumentResponse
 from app.utils.graph import dump_messages
-from app.core.config import settings
-from app.core.logging import logger
-
 
 documents_list_adapter = TypeAdapter(list[DocumentResponse])
 
@@ -59,6 +58,7 @@ class HttpClientWrapper:
             self.session.base_url = base_url
             
     def __repr__(self):
+        """Return a string representation of the object."""
         return "<HttpClientWrapper>"
 
     async def _get_login_access_token(self, username: str, password: str) -> TokenResponse:

@@ -3,8 +3,8 @@
 This module sets up and configures Prometheus metrics for monitoring the application.
 """
 
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry
-from starlette_prometheus import metrics, PrometheusMiddleware
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
+from starlette_prometheus import PrometheusMiddleware, metrics
 
 # Request metrics
 http_requests_total = Counter(

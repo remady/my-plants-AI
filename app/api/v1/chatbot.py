@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.v1.auth import get_current_session
 from app.core.config import settings
-from app.core.langgraph.graph import LangGraphAgent
+from app.core.graph.graph import LangGraphAgent
 from app.core.limiter import limiter
 from app.core.logging import logger
 from app.core.metrics import llm_stream_duration_seconds

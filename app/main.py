@@ -26,7 +26,7 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.logging import logger
 from app.core.metrics import setup_metrics
-from app.core.middleware import MetricsMiddleware, LimitFileSizeMiddleware
+from app.core.middleware import LimitFileSizeMiddleware, MetricsMiddleware
 from app.services.database import database_service
 
 # Load environment variables
@@ -69,6 +69,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Set up graph state
 app.state.graph = None
+app.state.rag = None
 
 
 # Add validation exception handler
