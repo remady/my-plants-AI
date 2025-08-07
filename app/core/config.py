@@ -7,6 +7,7 @@ configuration value parsing.
 
 import json
 import os
+import tomllib
 from enum import Enum
 from pathlib import Path
 
@@ -109,6 +110,16 @@ def parse_dict_of_lists_from_env(prefix, default_dict=None):
 
     return result
 
+def get_version_from_pyproject() -> str:
+    """Parse pyproject.toml and get actual app version."""
+    try:
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+            return data["project"]["version"]
+    except Exception as e:
+        print(f"Failed to read version from pyproject.toml: {e}")
+        return "0.0.1"
+
 
 class Settings:
     """Application settings without using pydantic."""
@@ -125,7 +136,7 @@ class Settings:
 
         # Application Settings
         self.PROJECT_NAME = os.getenv("PROJECT_NAME", "My Plants AI")
-        self.VERSION = os.getenv("VERSION", "0.1.0")
+        self.VERSION = os.getenv("VERSION", get_version_from_pyproject())
         self.DESCRIPTION = os.getenv(
             "DESCRIPTION", "Financial LLM Agent"
         )
