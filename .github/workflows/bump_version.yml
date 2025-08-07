@@ -1,13 +1,16 @@
 name: Bump Version
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version_type:
         description: 'The type of version bump (patch, minor, or major)'
         required: true
         default: 'patch'
-        type: 'choice'
+        type: choice
         options:
           - patch
           - minor
@@ -19,8 +22,6 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -30,18 +31,21 @@ jobs:
       - name: Bump version
         id: bump_version
         run: |
-          version_type=${{ github.event.inputs.version.type }}
-          
-          # Read the current version from pyproject.toml
+          version_type="${{ github.event.inputs.version_type }}"
+          if [ -z "$version_type" ]; then
+            version_type="patch"
+          fi
+
+          echo "🔧 Bumping version type: $version_type"
+
           current_version=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
-          
-          # Split the version into major, minor, and patch
+          echo "📄 Current version: $current_version"
+
           IFS='.' read -r -a version_parts <<< "$current_version"
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
-          
-          # Bump the version based on the input
+
           if [[ "$version_type" == "major" ]]; then
             major=$((major + 1))
             minor=0
@@ -52,12 +56,11 @@ jobs:
           else
             patch=$((patch + 1))
           fi
-          
+
           new_version="$major.$minor.$patch"
-          
-          # Update the version in pyproject.toml
+          echo "✅ New version: $new_version"
+
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
-          
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Commit and push changes
@@ -65,5 +68,5 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add pyproject.toml
-          git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git commit -m "🔖 Bump version to ${{ steps.bump_version.outputs.new_version }}"
           git push
